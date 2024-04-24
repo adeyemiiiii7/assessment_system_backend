@@ -19,7 +19,6 @@ adminRouter.post('/admin/add-assessment', admin, async (req, res) => {
   }
 });
 // Add Question to Assessment
-// add-question route handler
 adminRouter.post('/admin/add-question/:assessmentId', admin, async (req, res) => {
     try {
         const { text, type, options, personalAnswer } = req.body;
@@ -31,9 +30,6 @@ adminRouter.post('/admin/add-question/:assessmentId', admin, async (req, res) =>
         if (!assessment) {
             return res.status(404).json({ error: 'Assessment not found' });
         }
-
-       
-
         // Create the question
         const question = new Question({
             text,
@@ -80,7 +76,7 @@ adminRouter.post('/admin/delete-assessment', admin, async (req, res) => {
   try {
     const { id } = req.body;
     const assessment = await Assessment.findByIdAndDelete(id);
-    // Also delete all questions associated with the assessment
+    //o delete all questions associated with the assessment
     await Question.deleteMany({ assessment: id });
     res.json(assessment);
   } catch (e) {
