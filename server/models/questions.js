@@ -16,7 +16,7 @@ const questionSchema = mongoose.Schema({
         type: String,
         required: true
       },
-      // Add any additional fields related to options if needed
+  
     }
   ],
   personalAnswer: {
