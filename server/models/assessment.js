@@ -5,7 +5,15 @@ const assessmentSchema = mongoose.Schema({
     type: String,
     required: true
   },
-  questions: [questionSchema]
+
+  questions: [questionSchema], 
+
+  cancelled: {
+    type: Boolean,
+    default: false
+  }
+  
+
 });
 
 const Assessment = mongoose.model('Assessment', assessmentSchema);
