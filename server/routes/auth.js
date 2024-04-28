@@ -47,12 +47,13 @@ authRouter.post('/api/login', async (req, res) => {
       if (!isValidPassword) {
           return res.status(401).json({ message: 'Invalid password' });
       }
-      const token = jwt.sign({ id: user._id }, 'secretkey'); // Use the same secret key here
+      const token = jwt.sign({ id: user._id }, 'secretkey', { expiresIn: '1d'});
       res.json({ token, ...user._doc });
   } catch (e) {
       res.status(500).json({ error: e.message });
   }
 });
+
 
   
   authRouter.get('/api/dashboard', verifyToken, (req, res) => {
