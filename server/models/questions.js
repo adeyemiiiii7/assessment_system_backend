@@ -14,14 +14,14 @@ const questionSchema = mongoose.Schema({
     {
       text: {
         type: String,
-        required: true
+        required: false
       },
   
     }
   ],
   personalAnswer: {
-    type: String,
-    required: false // Optional field, only applicable for 'personalAnswers' type questions
+    type: String, 
+    required: false 
   }
 });
 
