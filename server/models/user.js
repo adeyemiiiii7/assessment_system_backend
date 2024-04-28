@@ -1,17 +1,16 @@
-const express = require('express');
 const mongoose = require('mongoose');
+
 const userSchema = new mongoose.Schema({
-    username: { 
-        type: String, 
-        required: true 
+    username: {
+        type: String,
+        required: true
     },
-    // email: { type: String, required: true },
     type: {
         type: String,
         default: 'user'
     },
-    password: { 
-        type: String, 
+    password: {
+        type: String,
         required: true,
         validate: {
             validator: (value) => {
@@ -19,9 +18,38 @@ const userSchema = new mongoose.Schema({
                 return /^(?=.*[!@#$%^&*(),.?":{}|<>])(?=.*[0-9]).{6,}$/.test(value);
             },
             message: "Password must contain at least one symbol and one number, and be at least 6 characters long"
-        }},
+        }
+    },
+    assessments: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Assessment'
+    }],
+    answeredAssessments: [{
+        assessment: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Assessment'
+        },
+        answers: [{
+            question: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'Question'
+            },
+            answer: String
+        }]
+    }],
+    feedbacks: [{
+        assessment: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Assessment'
+        },
+        feedback: String,
+        username: String
+    }],
+    cancelledAssessments: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Assessment'
+    }]
+});
 
-
-  });
-  const User = mongoose.model('User', userSchema);
-  module.exports = User;
+const User = mongoose.model('User', userSchema);
+module.exports = User;
