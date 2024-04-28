@@ -4,7 +4,6 @@ const admin = require("../middleware/admin");
 const Assessment = require("../models/assessment");
 const {Question, questionSchema} = require("../models/questions");
 
-
 // Add Assessment
 adminRouter.post('/admin/add-assessment', admin, async (req, res) => {
   try {
@@ -84,15 +83,36 @@ adminRouter.post('/admin/delete-assessment', admin, async (req, res) => {
   }
 });
 
-// Delete Question
-adminRouter.post('/admin/delete-question', admin, async (req, res) => {
-  try {
-    const { id } = req.body;
-    const question = await Question.findByIdAndDelete(id);
-    res.json(question);
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
+// Delete Question from Assessment
+adminRouter.post('/admin/delete-question/:assessmentId', admin, async (req, res) => {
+    try {
+      const { assessmentId } = req.params;
+      const { id: questionId } = req.body;
+  
+      // Find the assessment by ID
+      const assessment = await Assessment.findById(assessmentId);
+  
+      if (!assessment) {
+        return res.status(404).json({ error: 'Assessment not found' });
+      }
+  
+      // Find the question by ID and remove it from the assessment's questions array
+      const index = assessment.questions.findIndex(q => q._id.toString() === questionId);
+      if (index === -1) {
+        return res.status(404).json({ error: 'Question not found' });
+      }
+      assessment.questions.splice(index, 1);
+  
+      // Save the updated assessment
+      await assessment.save();
+  
+      // Delete the question
+      await Question.findByIdAndDelete(questionId);
+  
+      res.json({ message: 'Question deleted successfully' });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+  
 module.exports = adminRouter;
