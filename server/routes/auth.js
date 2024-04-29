@@ -8,7 +8,7 @@ const verifyToken = require('../middleware/verifyToken');
 
 authRouter.post('/api/signup', async (req, res) => {
     try {
-      const { username, password } = req.body;
+      const { firstname,lastname, username, password } = req.body;
       
         
       // Check if the username already exists
@@ -21,6 +21,8 @@ authRouter.post('/api/signup', async (req, res) => {
       // If username is unique, hash the password and save the user
       const hashedPassword = await bycryptjs.hash(password, 8);
       let user = new User({
+         firstname,
+         lastname,
          username, 
          password: hashedPassword });
       await user.save();
