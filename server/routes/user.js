@@ -14,8 +14,8 @@ userRouter.get("/user/assessments", auth, async (req, res) => {
         const assessment = await Assessment.find()
         console.log("LOG: ", assessment)
         return res.status(200).json(assessment);
-    } catch (error) {
-        return res.status(500).json({ error: error.message });
+    } catch (e) {
+        return res.status(500).json({ error: e.message });
     }
 });
 
@@ -23,78 +23,73 @@ userRouter.get("/user/assessments", auth, async (req, res) => {
 userRouter.post("/user/assessments/:assessmentId/answer", auth, async (req, res) => {
     try {
         const { assessmentId } = req.params;
-        const { answers } = req.body;
-
-        console.log("Received answers:", answers); // Log the answers array to verify its contents and structure
-
-        // Log the assessmentId received to ensure it matches the expected format
-        console.log("Received assessmentId:", assessmentId);
-
-        // Find the user based on the authenticated user's ID
+        const { answers } = req.body; 
+        // Fetch the authenticated user's ID
         const userId = req.user;
-
-        // Find the user document and populate the answeredAssessments field to include the assessment information
         const user = await User.findById(userId).populate('answeredAssessments.assessment');
 
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
         }
-
-        // Find the answeredAssessment object within the user's answeredAssessments array
+        
+        // Check if the user has answered the assessment before
         const answeredAssessment = user.answeredAssessments.find(aa => aa.assessment._id.toString() === assessmentId);
-
-        if (!answeredAssessment) {
-            return res.status(404).json({ error: 'Answered assessment not found' });
+        if (answeredAssessment) {
+            return res.status(400).json({ error: 'User has already answered this assessment' });
         }
 
-        // Ensure answeredAssessment.answers is initialized as an array
-        if (!answeredAssessment.answers) {
-            answeredAssessment.answers = [];
+        // Ensure user is not trying to answer the assessment again
+        const assessment = await Assessment.findById(assessmentId);
+        if (!assessment) {
+            return res.status(404).json({ error: 'Assessment not found' });
         }
-
+        
+        // Create an array to hold the new answers
+        const newAnswers = [];
+        
         // Loop through each answer
         for (const answer of answers) {
-            const { id: questionId, answerId } = answer;
+            const { id: questionId, answerId, text } = answer;
             console.log(`Processing answer for questionId ${questionId} with answerId ${answerId}`);
-
-            // Log the questionId received to ensure it matches the expected format
-            console.log("Received questionId:", questionId);
-
             // Ensure questionId is not undefined
             if (!questionId) {
                 return res.status(400).json({ error: 'Question ID is missing in the request' });
             }
-
-            // Find the question in the assessment's questions array
-            const questionInAssessment = answeredAssessment.assessment.questions.find(q => q._id.toString() === questionId);
+            const questionInAssessment = assessment.questions.find(q => q._id.toString() === questionId);
 
             if (!questionInAssessment) {
                 return res.status(404).json({ error: `Question with ID ${questionId} not found in the assessment` });
             }
-
-            // Process the answer based on the question type
-
             // Check if the question type is 'personalAnswers'
             if (questionInAssessment.type === 'personalAnswers') {
-                // Save personal answer
-                answeredAssessment.answers.push({ question: questionId, answer: answerId });
+                // Push question text along with the answer
+                newAnswers.push({ question: questionInAssessment.text, answer: text });
             } else if (questionInAssessment.type === 'options') {
                 // Find the selected option
                 const option = questionInAssessment.options.find(opt => opt._id.toString() === answerId);
                 if (!option) {
                     return res.status(400).json({ error: `Invalid answer option for question: ${questionInAssessment.text}` });
                 }
-                // Save the selected option
-                answeredAssessment.answers.push({ question: questionId, answer: option.text });
+                // Save the selected option to new answers
+                newAnswers.push({ question: questionInAssessment.text, answer: option.text });
             }
         }
+        
+        // Create a new answeredAssessment object
+        const newAnsweredAssessment = {
+            assessment: assessmentId,
+            answers: newAnswers
+        };
+        
+        // Push the new answered assessment to user's answeredAssessments
+        user.answeredAssessments.push(newAnsweredAssessment);
 
-        // Save user with updated answeredAssessment
+        // Save user with updated answeredAssessments
         await user.save();
 
         res.json({ message: "Answers submitted successfully" });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
     }
 });
 
@@ -105,21 +100,31 @@ userRouter.post("/user/assessments/:assessmentId/answer", auth, async (req, res)
 userRouter.get("/user/assessments/:assessmentId/results", auth, async (req, res) => {
     try {
         const { assessmentId } = req.params;
+        const userId = req.user;
 
-        const assessment = await Assessment.findById(assessmentId);
-        if (!assessment) {
-            return res.status(404).json({ error: 'Assessment not found' });
+        // Find the user document
+        const user = await User.findById(userId).populate('answeredAssessments.assessment');
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
         }
 
-        const results = assessment.results;
-        const answers = assessment.answers;
+        // Find the answeredAssessment object within the user's answeredAssessments array
+        const answeredAssessment = user.answeredAssessments.find(aa => aa.assessment._id.toString() === assessmentId);
+        if (!answeredAssessment) {
+            return res.status(404).json({ error: 'User has not answered this assessment yet' });
+        }
 
-        res.json({ results, answers });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
+        // Get the assessment details
+        const assessment = answeredAssessment.assessment;
+
+        // Return the assessment title and the user's answers
+        const assessmentTitle = assessment.title;
+        const userAnswers = answeredAssessment.answers;
+        res.json({ assessmentTitle, userAnswers });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
     }
 });
-
 // // Give feedback
 // userRouter.post("/user/assessments/:assessmentId/feedback", auth, async (req, res) => {
 //   try {
@@ -156,8 +161,8 @@ userRouter.post("/user/assessments/:assessmentId/cancel", auth, async (req, res)
         await assessment.save();
 
         res.json({ message: "Assessment canceled successfully" });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
     }
 });
 
