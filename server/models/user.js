@@ -6,7 +6,7 @@ const answeredAssessmentSchema = new mongoose.Schema({
         ref: 'Assessment'
     },
     answers: [{
-        question: String, // Include question text here
+        question: String, 
         answer: String
     }]
 });
