@@ -1,6 +1,25 @@
 const mongoose = require('mongoose');
 
+const answeredAssessmentSchema = new mongoose.Schema({
+    assessment: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Assessment'
+    },
+    answers: [{
+        question: String, // Include question text here
+        answer: String
+    }]
+});
+
 const userSchema = new mongoose.Schema({
+    firstname:{
+        type: String,
+        required: true
+    },
+    lastname:{
+        type: String,
+        required: true
+    },
     username: {
         type: String,
         required: true
@@ -24,19 +43,7 @@ const userSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Assessment'
     }],
-    answeredAssessments: [{
-        assessment: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'Assessment'
-        },
-        answers: [{
-            question: {
-                type: mongoose.Schema.Types.ObjectId,
-                ref: 'Question'
-            },
-            answer: String
-        }]
-    }],
+    answeredAssessments: [answeredAssessmentSchema], // Use the modified schema for answeredAssessments
     feedbacks: [{
         assessment: {
             type: mongoose.Schema.Types.ObjectId,
