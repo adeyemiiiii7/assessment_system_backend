@@ -24,34 +24,25 @@ userRouter.post("/user/assessments/:assessmentId/answer", auth, async (req, res)
     try {
         const { assessmentId } = req.params;
         const { answers } = req.body; 
-        // Fetch the authenticated user's ID
         const userId = req.user;
         const user = await User.findById(userId).populate('answeredAssessments.assessment');
 
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
         }
-        
-        // Check if the user has answered the assessment before
+        //if the user has answered the assessment before
         const answeredAssessment = user.answeredAssessments.find(aa => aa.assessment._id.toString() === assessmentId);
         if (answeredAssessment) {
             return res.status(400).json({ error: 'User has already answered this assessment' });
         }
-
-        // Ensure user is not trying to answer the assessment again
         const assessment = await Assessment.findById(assessmentId);
         if (!assessment) {
             return res.status(404).json({ error: 'Assessment not found' });
         }
-        
-        // Create an array to hold the new answers
         const newAnswers = [];
-        
-        // Loop through each answer
         for (const answer of answers) {
             const { id: questionId, answerId, text } = answer;
             console.log(`Processing answer for questionId ${questionId} with answerId ${answerId}`);
-            // Ensure questionId is not undefined
             if (!questionId) {
                 return res.status(400).json({ error: 'Question ID is missing in the request' });
             }
@@ -62,7 +53,6 @@ userRouter.post("/user/assessments/:assessmentId/answer", auth, async (req, res)
             }
             // Check if the question type is 'personalAnswers'
             if (questionInAssessment.type === 'personalAnswers') {
-                // Push question text along with the answer
                 newAnswers.push({ question: questionInAssessment.text, answer: text });
             } else if (questionInAssessment.type === 'options') {
                 // Find the selected option
@@ -74,19 +64,12 @@ userRouter.post("/user/assessments/:assessmentId/answer", auth, async (req, res)
                 newAnswers.push({ question: questionInAssessment.text, answer: option.text });
             }
         }
-        
-        // Create a new answeredAssessment object
         const newAnsweredAssessment = {
             assessment: assessmentId,
             answers: newAnswers
         };
-        
-        // Push the new answered assessment to user's answeredAssessments
         user.answeredAssessments.push(newAnsweredAssessment);
-
-        // Save user with updated answeredAssessments
         await user.save();
-
         res.json({ message: "Answers submitted successfully" });
     } catch (e) {
         res.status(500).json({ error: e.message });
@@ -94,30 +77,23 @@ userRouter.post("/user/assessments/:assessmentId/answer", auth, async (req, res)
 });
 
 
-
-
 // View assessment results and answers
 userRouter.get("/user/assessments/:assessmentId/results", auth, async (req, res) => {
     try {
         const { assessmentId } = req.params;
         const userId = req.user;
-
-        // Find the user document
+        // Find the user 
         const user = await User.findById(userId).populate('answeredAssessments.assessment');
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
         }
-
         // Find the answeredAssessment object within the user's answeredAssessments array
         const answeredAssessment = user.answeredAssessments.find(aa => aa.assessment._id.toString() === assessmentId);
         if (!answeredAssessment) {
             return res.status(404).json({ error: 'User has not answered this assessment yet' });
         }
-
         // Get the assessment details
         const assessment = answeredAssessment.assessment;
-
-        // Return the assessment title and the user's answers
         const assessmentTitle = assessment.title;
         const userAnswers = answeredAssessment.answers;
         res.json({ assessmentTitle, userAnswers });
@@ -146,24 +122,25 @@ userRouter.get("/user/assessments/:assessmentId/results", auth, async (req, res)
 //   }
 // });
 
+
 // Cancel assessment
-userRouter.post("/user/assessments/:assessmentId/cancel", auth, async (req, res) => {
-    try {
-        const { assessmentId } = req.params;
+// userRouter.post("/user/assessments/:assessmentId/cancel", auth, async (req, res) => {
+//     try {
+//         const { assessmentId } = req.params;
 
-        const assessment = await Assessment.findById(assessmentId);
-        if (!assessment) {
-            return res.status(404).json({ error: 'Assessment not found' });
-        }
+//         const assessment = await Assessment.findById(assessmentId);
+//         if (!assessment) {
+//             return res.status(404).json({ error: 'Assessment not found' });
+//         }
 
-        // flag 'cancelled' is set to true in the assessment document
-        assessment.cancelled = true;
-        await assessment.save();
+//         // flag 'cancelled' is set to true in the assessment document
+//         assessment.cancelled = true;
+//         await assessment.save();
 
-        res.json({ message: "Assessment canceled successfully" });
-    } catch (e) {
-        res.status(500).json({ error: e.message });
-    }
-});
+//         res.json({ message: "Assessment canceled successfully" });
+//     } catch (e) {
+//         res.status(500).json({ error: e.message });
+//     }
+// });
 
 module.exports = userRouter;
