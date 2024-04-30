@@ -22,8 +22,6 @@ adminRouter.post('/admin/add-question/:assessmentId', admin, async (req, res) =>
   try {
     const { text, type, options, personalAnswer } = req.body;
     const { assessmentId } = req.params;
-
-    // Find the assessment by ID
     const assessment = await Assessment.findById(assessmentId);
 
     if (!assessment) {
@@ -36,12 +34,9 @@ adminRouter.post('/admin/add-question/:assessmentId', admin, async (req, res) =>
       options,
       personalAnswer
     });
-
     // Add the question to the assessment's questions array
     assessment.questions.push(question);
-
     await assessment.save();
-
     res.json(question);
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -74,7 +69,7 @@ adminRouter.post('/admin/delete-assessment', admin, async (req, res) => {
   try {
     const { id } = req.body;
     const assessment = await Assessment.findByIdAndDelete(id);
-    //o delete all questions associated with the assessment
+    // delete all questions associated with the assessment
     await Question.deleteMany({ assessment: id });
     res.json(assessment);
   } catch (e) {
@@ -87,25 +82,17 @@ adminRouter.post('/admin/delete-question/:assessmentId', admin, async (req, res)
   try {
     const { assessmentId } = req.params;
     const { id: questionId } = req.body;
-
-    // Find the assessment by ID
     const assessment = await Assessment.findById(assessmentId);
-
     if (!assessment) {
       return res.status(404).json({ error: 'Assessment not found' });
     }
-
     // Find the question by ID and remove it from the assessment's questions array
     const index = assessment.questions.findIndex(q => q._id.toString() === questionId);
     if (index === -1) {
       return res.status(404).json({ error: 'Question not found' });
     }
     assessment.questions.splice(index, 1);
-
-
     await assessment.save();
-
-
     await Question.findByIdAndDelete(questionId);
 
     res.json({ message: 'Question deleted successfully' });
