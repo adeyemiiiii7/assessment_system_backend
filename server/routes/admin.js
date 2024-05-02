@@ -153,4 +153,19 @@ adminRouter.get('/admin/assessments/count', admin, async (req, res) => {
   }
 });
 
+// Get the number of assessments created by the currently authenticated admin
+adminRouter.get('/admin/assessments/count/specfic-admin', admin, async (req, res) => {
+  try {
+    const { firstname, lastname } = req.user;
+    
+    // Count the number of assessments created by the currently authenticated admin
+    const count = await Assessment.countDocuments({ firstname, lastname });
+    
+    res.json({ count });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+
 module.exports = adminRouter;
