@@ -4,19 +4,28 @@ const admin = require("../middleware/admin");
 const Assessment = require("../models/assessment");
 const { Question, questionSchema } = require("../models/questions");
 const User = require("../models/user");
-// Add Assessment
+
+//add assessment
 adminRouter.post('/admin/add-assessment', admin, async (req, res) => {
   try {
     const { title } = req.body;
+    const { firstname, lastname } = req.user; 
+  
     const assessment = new Assessment({
-      title
+      title,
+      firstname,
+      lastname,
     });
+
     await assessment.save();
     res.json(assessment);
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
 });
+
+
+
 // Add Question to Assessment
 adminRouter.post('/admin/add-question/:assessmentId', admin, async (req, res) => {
   try {
@@ -134,6 +143,14 @@ adminRouter.get('/admin/user-assessments', admin, async (req, res) => {
   }
 });
 
-
+// Get the number of assessments available
+adminRouter.get('/admin/assessments/count', admin, async (req, res) => {
+  try {
+    const count = await Assessment.countDocuments();
+    res.json({ count });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
 
 module.exports = adminRouter;
