@@ -49,8 +49,10 @@ authRouter.post('/api/login', async (req, res) => {
       if (!isValidPassword) {
           return res.status(401).json({ message: 'Invalid password' });
       }
+       // Calculate numAnsweredAssessment
+       const numAnsweredAssessment = user.answeredAssessments.length;
       const token = jwt.sign({ id: user._id }, 'secretkey', { expiresIn: '1d'});
-      res.json({ token, ...user._doc });
+      res.json({ token, ...user._doc, numAnsweredAssessment });
   } catch (e) {
       res.status(500).json({ error: e.message });
   }
