@@ -43,7 +43,7 @@ const userSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Assessment'
     }],
-    answeredAssessments: [answeredAssessmentSchema], // Use the modified schema for answeredAssessments
+    answeredAssessments: [answeredAssessmentSchema], 
     feedbacks: [{
         assessment: {
             type: mongoose.Schema.Types.ObjectId,
