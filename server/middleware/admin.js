@@ -13,12 +13,16 @@ const admin = async (req, res, next) => {
             return res.status(401).json({ msg: "Token verification failed, authorization denied." });
 
         const user = await User.findById(verified.id);    
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        
         if (user.type === "user" || user.type === "users") {
             return res.status(401).json({ msg: "You are not an admin!" });
         }
         
-        // If the user is an admin, pass the verified token and user ID to the next middleware
-        req.user = verified.id;
+        // If the user is an admin, pass the entire user object to req.user
+        req.user = user;
         req.token = token;
         next();
     } catch (err) {
