@@ -101,6 +101,16 @@ userRouter.get("/user/assessments/:assessmentId/results", auth, async (req, res)
         res.status(500).json({ error: e.message });
     }
 });
+
+userRouter.get('/user/assessments/count', auth, async (req, res) => {
+    try {
+      const count = await Assessment.countDocuments();
+      res.json({ count });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
 // // Give feedback
 // userRouter.post("/user/assessments/:assessmentId/feedback", auth, async (req, res) => {
 //   try {
