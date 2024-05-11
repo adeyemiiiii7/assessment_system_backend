@@ -66,12 +66,19 @@ adminRouter.get('/admin/get-assessments', admin, async (req, res) => {
 adminRouter.get('/admin/get-questions/:assessmentId', admin, async (req, res) => {
   try {
     const { assessmentId } = req.params;
-    const questions = await Question.find({ assessment: assessmentId });
+    const assessment = await Assessment.findById(assessmentId);
+    
+    if (!assessment) {
+      return res.status(404).json({ error: 'Assessment not found' });
+    }
+
+    const questions = assessment.questions;
     res.json(questions);
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
 });
+
 
 // Delete Assessment
 adminRouter.post('/admin/delete-assessment', admin, async (req, res) => {
@@ -109,7 +116,6 @@ adminRouter.post('/admin/delete-question/:assessmentId', admin, async (req, res)
     res.status(500).json({ error: e.message });
   }
 });
-
 adminRouter.get('/admin/user-assessments', admin, async (req, res) => {
   try {
     // Query the User collection to get users along with their answered assessments
@@ -125,23 +131,36 @@ adminRouter.get('/admin/user-assessments', admin, async (req, res) => {
           }
         }
       });
-    const responseData = users.map(user => {
-      return {
-        firstname: user.firstname,
-        lastname: user.lastname,
-        assessments: user.answeredAssessments.map(answeredAssessment => {
-          return {
-            title: answeredAssessment.assessment.title,
-            answers: answeredAssessment.answers
-          };
-        })
-      };
+
+    // Constructing the responseData object
+    const responseData = [];
+    users.forEach(user => {
+      user.answeredAssessments.forEach(answeredAssessment => {
+        const assessmentTitle = answeredAssessment.assessment.title;
+        const userResponse = {
+          firstname: user.firstname,
+          lastname: user.lastname,
+          answers: answeredAssessment.answers
+        };
+        // Check if the assessment title already exists in responseData
+        const existingAssessment = responseData.find(item => item.title === assessmentTitle);
+        if (existingAssessment) {
+          existingAssessment.users.push(userResponse);
+        } else {
+          responseData.push({
+            title: assessmentTitle,
+            users: [userResponse]
+          });
+        }
+      });
     });
+
     res.json(responseData);
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
 });
+
 
 // Get the number of assessments available
 adminRouter.get('/admin/assessments/count', admin, async (req, res) => {

@@ -2,7 +2,7 @@ const express = require("express");
 const userRouter = express.Router();
 const auth = require("../middleware/auth");
 const Assessment = require("../models/assessment");
-const {Question, questionSchema} = require("../models/questions");
+const { Question, questionSchema } = require("../models/questions");
 const User = require("../models/user");
 const mongoose = require('mongoose');
  
@@ -10,12 +10,44 @@ const mongoose = require('mongoose');
 userRouter.get("/user/assessments", auth, async (req, res) => {
     try {
         const userId = req.user;
-        console.log("LOG: user asessment")
-        const assessment = await Assessment.find()
-        console.log("LOG: ", assessment)
-        return res.status(200).json(assessment);
+        console.log("LOG: user assessment");
+        
+        // Find the user to get their answered assessments
+        const user = await User.findById(userId).populate('answeredAssessments.assessment');
+
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        // Get the IDs of assessments the user has already answered
+        const answeredAssessmentIds = user.answeredAssessments.map(aa => aa.assessment._id);
+
+        // Query assessments excluding those that the user has already answered
+        const assessments = await Assessment.find({ _id: { $nin: answeredAssessmentIds } });
+
+        console.log("LOG: ", assessments);
+        return res.status(200).json(assessments);
     } catch (e) {
         return res.status(500).json({ error: e.message });
+    }
+});
+
+userRouter.get("/user/assessments/:assessmentId/questions", auth, async (req, res) => {
+    try {
+        const { assessmentId } = req.params;
+        const assessment = await Assessment.findById(assessmentId);
+        
+        if (!assessment) {
+            return res.status(404).json({ error: 'Assessment not found' });
+        }
+
+        // Assuming questions are stored within the assessment object
+        const questions = assessment.questions;
+        const assessmentTitle = assessment.title; // Get the assessment title
+        
+        res.status(200).json({ title: assessmentTitle, questions }); // Return both title and questions
+    } catch (e) {
+        res.status(500).json({ error: e.message });
     }
 });
 
@@ -23,9 +55,12 @@ userRouter.get("/user/assessments", auth, async (req, res) => {
 userRouter.post("/user/assessments/:assessmentId/answer", auth, async (req, res) => {
     try {
         const { assessmentId } = req.params;
-        const { answers } = req.body; 
+        const { title, answers } = req.body; 
         const userId = req.user;
-        const user = await User.findById(userId).populate('answeredAssessments.assessment');
+        const user = await User.findById(userId).populate({
+            path: 'answeredAssessments.assessment',
+            select: 'title'
+        });
 
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
@@ -36,9 +71,11 @@ userRouter.post("/user/assessments/:assessmentId/answer", auth, async (req, res)
             return res.status(400).json({ error: 'User has already answered this assessment' });
         }
         const assessment = await Assessment.findById(assessmentId);
+        // console.log(`log: ${assessment}`);
         if (!assessment) {
             return res.status(404).json({ error: 'Assessment not found' });
         }
+        console.log(`Assessment title: ${assessment.title}`);
         const newAnswers = [];
         for (const answer of answers) {
             const { id: questionId, answerId, text } = answer;
@@ -65,6 +102,7 @@ userRouter.post("/user/assessments/:assessmentId/answer", auth, async (req, res)
             }
         }
         const newAnsweredAssessment = {
+            title: assessment.title, 
             assessment: assessmentId,
             answers: newAnswers
         };
@@ -75,6 +113,7 @@ userRouter.post("/user/assessments/:assessmentId/answer", auth, async (req, res)
         res.status(500).json({ error: e.message });
     }
 });
+
 
 
 // View assessment results and answers
@@ -101,6 +140,7 @@ userRouter.get("/user/assessments/:assessmentId/results", auth, async (req, res)
         res.status(500).json({ error: e.message });
     }
 });
+
 
 userRouter.get('/user/assessments/count', auth, async (req, res) => {
     try {
